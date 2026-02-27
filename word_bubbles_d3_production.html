@@ -124,6 +124,58 @@
     pointer-events: none;
   }
 
+  .examples {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #eceef2;
+  }
+
+  .examples-title {
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .examples-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .examples-col h4 {
+    margin: 0 0 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+  }
+
+  .examples-col ul {
+    margin: 0;
+    padding-left: 14px;
+  }
+
+  .examples-col li {
+    margin: 0 0 5px;
+    font-size: 11px;
+    line-height: 1.35;
+    color: #4b5563;
+  }
+
+  .kw-bad {
+    background: #dbeafe;
+    border: 1px solid #60a5fa;
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  .kw-good {
+    background: #fee2e2;
+    border: 1px solid #f87171;
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
   @media (max-width: 640px) {
     .story-card {
       padding: 10px 10px 8px;
@@ -134,6 +186,10 @@
       gap: 8px;
       font-size: 9px;
       margin-bottom: 6px;
+    }
+
+    .examples-grid {
+      grid-template-columns: 1fr;
     }
 
   }
@@ -158,6 +214,19 @@
     <div class="viz-wrap" id="vizWrap">
       <svg id="bubblesvg" role="img" aria-label="Split-color bubble chart comparing words by group"></svg>
     </div>
+    <section class="examples">
+      <p class="examples-title" id="examplesTitle">Click a bubble to view example responses</p>
+      <div class="examples-grid">
+        <div class="examples-col">
+          <h4>Mostly bad responses</h4>
+          <ul id="badExamples"></ul>
+        </div>
+        <div class="examples-col">
+          <h4>Mostly good responses</h4>
+          <ul id="goodExamples"></ul>
+        </div>
+      </div>
+    </section>
   </article>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
@@ -198,8 +267,100 @@ const colors = {
 
 const svg = d3.select('#bubblesvg');
 const wrap = d3.select('#vizWrap');
+const examplesTitle = d3.select('#examplesTitle');
+const badExamples = d3.select('#badExamples');
+const goodExamples = d3.select('#goodExamples');
 
 const margin = { top: 14, right: 16, bottom: 6, left: 16 };
+let selectedWord = null;
+
+const exampleIndex = {
+  friends: {
+    mostly_bad: [
+      "Because I enjoy keeping up with friends and family and seeing how others feel about what is going on in the world.",
+      "entertainment and check up on family and friends",
+      "For news, entertainment, connecting with friends"
+    ],
+    mostly_good: [
+      "I use it to catch up on the news and keep up with any of my friends updates in their life.",
+      "Catch up with friends",
+      "to keep up with whats going on in the lifes of family and friends"
+    ]
+  },
+  news: {
+    mostly_bad: [
+      "Because I still use it for news regarding sports",
+      "boredom, getting news updates about things i care about",
+      "For current news"
+    ],
+    mostly_good: [
+      "To check on breaking news and check in some influencers I follow to get new product content.",
+      "To check on the current trending global news.",
+      "I use social media for entertainment and to stay up to date on what is happening."
+    ]
+  },
+  family: {
+    mostly_bad: [
+      "Because I enjoy keeping up with friends and family...",
+      "maintain long-distance family connections with my in-laws",
+      "I use it to keep in touch with family who live far away."
+    ],
+    mostly_good: [
+      "To see what my family has been up to and check facebook marketplace",
+      "stay connected with friends and family and keep up with useful information",
+      "check up on my friends and family"
+    ]
+  },
+  entertainment: {
+    mostly_bad: [
+      "I have to sustain my craving for entertainment somehow.",
+      "entertainment",
+      "Entertainment."
+    ],
+    mostly_good: [
+      "I use social media for entertainment and to stay up to date.",
+      "for entertainment purposes",
+      "a source of entertainment and can be educational"
+    ]
+  },
+  habit: {
+    mostly_bad: [
+      "Because it's a habit and I still get enjoyment out of using it.",
+      "Boredom and habit",
+      "habit"
+    ],
+    mostly_good: []
+  }
+};
+
+function escapeHtml(str) {
+  return str
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('\"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function highlightTerm(text, term, cls) {
+  if (!term) return escapeHtml(text);
+  const safe = escapeHtml(text);
+  const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(${escapedTerm})`, 'ig');
+  return safe.replace(re, `<span class="${cls}">$1</span>`);
+}
+
+function renderExamples(word) {
+  const key = (word || '').toLowerCase();
+  const entry = exampleIndex[key];
+  const bad = entry?.mostly_bad || [];
+  const good = entry?.mostly_good || [];
+  examplesTitle.text(entry ? `Example responses mentioning "${word}"` : `Preview examples for "${word}" are not loaded yet`);
+  badExamples.selectAll('li').remove();
+  goodExamples.selectAll('li').remove();
+  badExamples.selectAll('li').data(bad).enter().append('li').html(d => highlightTerm(d, key, 'kw-bad'));
+  goodExamples.selectAll('li').data(good).enter().append('li').html(d => highlightTerm(d, key, 'kw-good'));
+}
 
 function targetX(badPct, width) {
   const innerW = width - margin.left - margin.right;
@@ -279,7 +440,14 @@ function render() {
     .style('cursor', 'pointer')
     .style('opacity', 0);
 
-  bubble.transition()
+  bubble
+    .on('click', function(event, d) {
+      selectedWord = d.word;
+      svg.selectAll('g.b circle:first-child').attr('stroke-width', 0.8);
+      d3.select(this).select('circle').attr('stroke-width', 1.6);
+      renderExamples(d.word.charAt(0).toUpperCase() + d.word.slice(1));
+    })
+    .transition()
     .duration(640)
     .delay((d, i) => i * 18)
     .style('opacity', 1);
@@ -354,6 +522,7 @@ function render() {
 }
 
 render();
+renderExamples('Friends');
 window.addEventListener('resize', () => {
   clearTimeout(window.__bubbleResize);
   window.__bubbleResize = setTimeout(render, 120);
