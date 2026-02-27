@@ -90,6 +90,14 @@
     text-align: left;
   }
 
+  .legend-bad .dot {
+    align-self: flex-end;
+  }
+
+  .legend-good .dot {
+    align-self: flex-start;
+  }
+
   .viz-wrap {
     position: relative;
     width: 100%;
@@ -273,6 +281,7 @@ const goodExamples = d3.select('#goodExamples');
 
 const margin = { top: 14, right: 16, bottom: 6, left: 16 };
 let selectedWord = null;
+let responseRows = null;
 
 function notifyParentHeight() {
   const h = Math.max(
@@ -284,64 +293,18 @@ function notifyParentHeight() {
   }
 }
 
-const exampleIndex = {
-  friends: {
-    mostly_bad: [
-      "Because I enjoy keeping up with friends and family and seeing how others feel about what is going on in the world.",
-      "entertainment and check up on family and friends",
-      "For news, entertainment, connecting with friends"
-    ],
-    mostly_good: [
-      "I use it to catch up on the news and keep up with any of my friends updates in their life.",
-      "Catch up with friends",
-      "to keep up with whats going on in the lifes of family and friends"
-    ]
-  },
-  news: {
-    mostly_bad: [
-      "Because I still use it for news regarding sports",
-      "boredom, getting news updates about things i care about",
-      "For current news"
-    ],
-    mostly_good: [
-      "To check on breaking news and check in some influencers I follow to get new product content.",
-      "To check on the current trending global news.",
-      "I use social media for entertainment and to stay up to date on what is happening."
-    ]
-  },
-  family: {
-    mostly_bad: [
-      "Because I enjoy keeping up with friends and family...",
-      "maintain long-distance family connections with my in-laws",
-      "I use it to keep in touch with family who live far away."
-    ],
-    mostly_good: [
-      "To see what my family has been up to and check facebook marketplace",
-      "stay connected with friends and family and keep up with useful information",
-      "check up on my friends and family"
-    ]
-  },
-  entertainment: {
-    mostly_bad: [
-      "I have to sustain my craving for entertainment somehow.",
-      "entertainment",
-      "Entertainment."
-    ],
-    mostly_good: [
-      "I use social media for entertainment and to stay up to date.",
-      "for entertainment purposes",
-      "a source of entertainment and can be educational"
-    ]
-  },
-  habit: {
-    mostly_bad: [
-      "Because it's a habit and I still get enjoyment out of using it.",
-      "Boredom and habit",
-      "habit"
-    ],
-    mostly_good: []
+async function loadResponses() {
+  try {
+    const rows = await d3.csv('responses_full.csv');
+    responseRows = {
+      mostly_bad: rows.map(r => (r['Responses "Mostly bad"'] || '').trim()).filter(Boolean),
+      mostly_good: rows.map(r => (r['Responses "Mostly Good"'] || '').trim()).filter(Boolean)
+    };
+  } catch (e) {
+    responseRows = { mostly_bad: [], mostly_good: [] };
   }
-};
+  renderExamples(selectedWord || 'Friends');
+}
 
 function escapeHtml(str) {
   return str
@@ -360,12 +323,26 @@ function highlightTerm(text, term, cls) {
   return safe.replace(re, `<span class="${cls}">$1</span>`);
 }
 
+function getExamplesForWord(word, limit = 3) {
+  if (!responseRows) return { mostly_bad: [], mostly_good: [] };
+  const escapedTerm = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`\\b${escapedTerm}\\b`, 'i');
+  return {
+    mostly_bad: responseRows.mostly_bad.filter(t => re.test(t)).slice(0, limit),
+    mostly_good: responseRows.mostly_good.filter(t => re.test(t)).slice(0, limit)
+  };
+}
+
 function renderExamples(word) {
   const key = (word || '').toLowerCase();
-  const entry = exampleIndex[key];
-  const bad = entry?.mostly_bad || [];
-  const good = entry?.mostly_good || [];
-  examplesTitle.text(entry ? `Example responses mentioning "${word}"` : `Preview examples for "${word}" are not loaded yet`);
+  if (!responseRows) {
+    examplesTitle.text(`Loading responses for "${word}"...`);
+    return;
+  }
+  const entry = getExamplesForWord(key);
+  const bad = entry.mostly_bad || [];
+  const good = entry.mostly_good || [];
+  examplesTitle.text(`Example responses mentioning "${word}"`);
   badExamples.selectAll('li').remove();
   goodExamples.selectAll('li').remove();
   badExamples.selectAll('li').data(bad).enter().append('li').html(d => highlightTerm(d, key, 'kw-bad'));
@@ -534,6 +511,7 @@ function render() {
 
 render();
 renderExamples('Friends');
+loadResponses();
 window.addEventListener('resize', () => {
   clearTimeout(window.__bubbleResize);
   window.__bubbleResize = setTimeout(() => {
