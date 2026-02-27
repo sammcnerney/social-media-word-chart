@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Social Media Word Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafafa;
+    --card: #fafafa;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #d5d9e0;
+    --bad: #f2cccb;
+    --good: #c9d7e8;
+    --bad-stroke: #d4a8a7;
+    --good-stroke: #a8bdd4;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: Inter, sans-serif;
+    color: var(--ink);
+  }
+
+  .story-card {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 14px 14px 10px;
+    background: var(--card);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  h2 {
+    margin: 0;
+    font-family: Inter, sans-serif;
+    font-weight: 600;
+    font-size: clamp(12px, 1.65vw, 20px);
+    line-height: 1.2;
+    color: #111827;
+  }
+
+  .subtitle {
+    margin: 6px 0 10px;
+    color: var(--muted);
+    font-size: clamp(9px, 0.95vw, 12px);
+    line-height: 1.35;
+    max-width: none;
+  }
+
+  .legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    justify-content: center;
+    gap: 16px;
+    font-size: 10px;
+    color: var(--muted);
+    margin: 4px 0 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 280px;
+    line-height: 1.35;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    align-self: center;
+  }
+
+  .legend-bad {
+    justify-self: end;
+    text-align: right;
+  }
+
+  .legend-good {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .viz-wrap {
+    position: relative;
+    width: 100%;
+    border-radius: 0;
+    overflow: hidden;
+    background: #fafafa;
+    border: 0;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .bubble-word {
+    font-family: Inter, sans-serif;
+    font-weight: 500;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: #1f2937;
+    pointer-events: none;
+  }
+
+  .bubble-meta {
+    font-family: Inter, sans-serif;
+    font-weight: 500;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: #6b7280;
+    pointer-events: none;
+  }
+
+  .axis-line {
+    stroke: #d6dbe5;
+    stroke-width: 1;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(17, 24, 39, 0.96);
+    color: #f9fafb;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.35;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    transform: translate(-50%, -110%);
+    opacity: 0;
+    transition: opacity 120ms ease;
+    max-width: 230px;
+    z-index: 4;
+  }
+
+  .tooltip strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .footer-note {
+    margin: 6px 2px 0;
+    color: #8a90a1;
+    font-size: 10px;
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    .story-card {
+      padding: 10px 10px 8px;
+      border-radius: 0;
+    }
+
+    .legend {
+      gap: 8px;
+      font-size: 9px;
+      margin-bottom: 6px;
+    }
+
+    .tooltip {
+      font-size: 11px;
+      max-width: 200px;
+    }
+  }
+</style>
+</head>
+<body>
+  <article class="story-card">
+    <h2>Words used to explain social media use, by group</h2>
+    <p class="subtitle">Bubble size = combined mention rate across both groups. Color split shows which group used the word more, normalized for sample size (Mostly Bad n=131, Mostly Good n=76).</p>
+
+    <div class="legend">
+      <div class="legend-item legend-bad">
+        <span class="dot" style="background:var(--bad);border:1px solid var(--bad-stroke);"></span>
+        <span>Words favored by people who think social media is <strong>mostly bad</strong> for society</span>
+      </div>
+      <div class="legend-item legend-good">
+        <span class="dot" style="background:var(--good);border:1px solid var(--good-stroke);"></span>
+        <span>Words favored by people who think social media is <strong>mostly good</strong> for society</span>
+      </div>
+    </div>
+
+    <div class="viz-wrap" id="vizWrap">
+      <svg id="bubblesvg" role="img" aria-label="Split-color bubble chart comparing words by group"></svg>
+      <div id="tooltip" class="tooltip"></div>
+    </div>
+
+    <p class="footer-note">Split values show mention share by group for each word. Tap circles on mobile for details.</p>
+  </article>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+const data = [
+  { word: 'friends', totalRate: 32.6, badPct: 52 },
+  { word: 'news', totalRate: 26.1, badPct: 29 },
+  { word: 'family', totalRate: 24.6, badPct: 47 },
+  { word: 'entertainment', totalRate: 19.5, badPct: 39 },
+  { word: 'world', totalRate: 14.1, badPct: 16 },
+  { word: 'habit', totalRate: 12.2, badPct: 100 },
+  { word: 'videos', totalRate: 9.6, badPct: 32 },
+  { word: 'information', totalRate: 9.6, badPct: 32 },
+  { word: 'facebook', totalRate: 9.3, badPct: 58 },
+  { word: 'informed', totalRate: 8.9, badPct: 26 },
+  { word: 'connected', totalRate: 8.5, badPct: 54 },
+  { word: 'bored', totalRate: 8.0, badPct: 67 },
+  { word: 'society', totalRate: 6.9, badPct: 100 },
+  { word: 'helps', totalRate: 6.6, badPct: 0 },
+  { word: 'learn', totalRate: 6.0, badPct: 13 },
+  { word: 'boredom', totalRate: 4.9, badPct: 47 },
+  { word: 'scroll', totalRate: 4.4, badPct: 70 },
+  { word: 'reddit', totalRate: 4.4, badPct: 70 },
+  { word: 'enjoy', totalRate: 4.4, badPct: 70 },
+  { word: 'addicted', totalRate: 3.8, badPct: 100 },
+  { word: 'addictive', totalRate: 3.1, badPct: 100 },
+  { word: 'mental', totalRate: 3.1, badPct: 100 },
+  { word: 'misinformation', totalRate: 2.3, badPct: 100 },
+  { word: 'waste', totalRate: 2.3, badPct: 100 },
+  { word: 'youtube', totalRate: 2.3, badPct: 100 }
+];
+
+const colors = {
+  bad: '#F2CCCB',
+  good: '#C9D7E8',
+  stroke: '#c2c8d5'
+};
+
+const svg = d3.select('#bubblesvg');
+const wrap = d3.select('#vizWrap');
+const tooltip = d3.select('#tooltip');
+let activeNode = null;
+
+const margin = { top: 20, right: 16, bottom: 20, left: 16 };
+
+function targetX(badPct, width) {
+  const innerW = width - margin.left - margin.right;
+  return margin.left + ((100 - badPct) / 100) * innerW;
+}
+
+function eyeHeight(x, width, height) {
+  const cx = width / 2;
+  const rx = (width - margin.left - margin.right) * 0.49;
+  const ry = (height - margin.top - margin.bottom) * 0.47;
+  const dx = (x - cx) / rx;
+  if (Math.abs(dx) >= 1) return 0;
+  return ry * Math.sqrt(1 - dx * dx);
+}
+
+function tooltipHtml(d) {
+  const goodPct = 100 - d.badPct;
+  const favored = d.badPct > 55 ? 'Mostly bad group' : d.badPct < 45 ? 'Mostly good group' : 'Near even split';
+  return `<strong>${d.word}</strong><br>${d.badPct}% bad-group share vs ${goodPct}% good-group share<br>${favored}`;
+}
+
+function placeTooltip(d, width, height) {
+  const x = d.renderX;
+  const y = d.renderY;
+  tooltip
+    .style('left', `${Math.max(20, Math.min(width - 20, x))}px`)
+    .style('top', `${Math.max(30, y - d.r - 10)}px`);
+}
+
+function showTooltip(d, width, height) {
+  tooltip.html(tooltipHtml(d)).style('opacity', 1);
+  placeTooltip(d, width, height);
+}
+
+function hideTooltip() {
+  if (activeNode) return;
+  tooltip.style('opacity', 0);
+}
+
+function render() {
+  const bounds = wrap.node().getBoundingClientRect();
+  const width = Math.max(320, Math.floor(bounds.width));
+  const height = Math.max(300, Math.min(460, Math.floor(width * 0.50)));
+
+  svg.attr('viewBox', `0 0 ${width} ${height}`);
+
+  const isMobile = width < 520;
+  const minR = isMobile ? 10 : 12;
+  const maxR = isMobile ? 46 : 62;
+  const maxRate = d3.max(data, d => d.totalRate);
+  const rScale = d3.scaleSqrt().domain([0, maxRate]).range([minR, maxR]);
+  const cy = height / 2;
+
+  const nodes = data.map((d, i) => {
+    const r = rScale(d.totalRate);
+    const tx = targetX(d.badPct, width);
+    const eh = eyeHeight(tx, width, height);
+    const sign = i % 2 === 0 ? -1 : 1;
+    const spread = Math.max(0, Math.min(eh * 0.72, eh - r - 4));
+    const ty = cy + sign * spread * (0.36 + (i % 3) * 0.28);
+
+    return {
+      ...d,
+      r,
+      x: tx + (Math.random() - 0.5) * 7,
+      y: ty,
+      tx,
+      ty
+    };
+  });
+
+  const sim = d3.forceSimulation(nodes)
+    .force('x', d3.forceX(d => targetX(d.badPct, width)).strength(0.17))
+    .force('y', d3.forceY(cy).strength(0.07))
+    .force('collide', d3.forceCollide(d => d.r + 3).iterations(2))
+    .stop();
+
+  for (let i = 0; i < 280; i++) {
+    sim.tick();
+    for (const d of nodes) {
+      const eh = eyeHeight(d.x, width, height);
+      const lim = Math.max(eh - d.r - 2, 0);
+      d.y = Math.max(cy - lim, Math.min(cy + lim, d.y));
+      d.x = Math.max(margin.left + d.r, Math.min(width - margin.right - d.r, d.x));
+      d.renderX = d.x;
+      d.renderY = d.y;
+    }
+  }
+
+  svg.selectAll('*').remove();
+
+  const defs = svg.append('defs');
+
+  svg.append('line')
+    .attr('class', 'axis-line')
+    .attr('x1', margin.left)
+    .attr('x2', width - margin.right)
+    .attr('y1', 24)
+    .attr('y2', 24);
+
+  const bubble = svg.append('g')
+    .selectAll('g.b')
+    .data(nodes, d => d.word)
+    .enter()
+    .append('g')
+    .attr('class', 'b')
+    .attr('transform', d => `translate(${d.renderX},${d.renderY})`)
+    .style('cursor', 'pointer')
+    .style('opacity', 0);
+
+  bubble.transition()
+    .duration(640)
+    .delay((d, i) => i * 18)
+    .style('opacity', 1);
+
+  bubble.each(function(d, i) {
+    const g = d3.select(this);
+    const badFrac = d.badPct / 100;
+
+    if (d.badPct === 100 || d.badPct === 0) {
+      g.append('circle')
+        .attr('r', d.r)
+        .attr('fill', d.badPct === 100 ? colors.bad : colors.good)
+        .attr('stroke', d.badPct === 100 ? '#d4a8a7' : '#a8bdd4')
+        .attr('stroke-width', 0.8);
+    } else {
+      g.append('circle')
+        .attr('r', d.r)
+        .attr('fill', colors.good);
+
+      const clipId = `clip-${i}-${Math.round(width)}`;
+      defs.append('clipPath')
+        .attr('id', clipId)
+        .append('rect')
+        .attr('x', -d.r)
+        .attr('y', -d.r)
+        .attr('width', d.r * 2 * badFrac)
+        .attr('height', d.r * 2);
+
+      g.append('circle')
+        .attr('r', d.r)
+        .attr('fill', colors.bad)
+        .attr('clip-path', `url(#${clipId})`);
+
+      g.append('circle')
+        .attr('r', d.r)
+        .attr('fill', 'none')
+        .attr('stroke', colors.stroke)
+        .attr('stroke-width', 0.8);
+
+      const splitX = -d.r + d.r * 2 * badFrac;
+      const dx = splitX;
+      if (Math.abs(dx) <= d.r) {
+        const halfH = Math.sqrt(d.r * d.r - dx * dx);
+        g.append('line')
+          .attr('x1', splitX)
+          .attr('x2', splitX)
+          .attr('y1', -halfH)
+          .attr('y2', halfH)
+          .attr('stroke', '#b9bfcb')
+          .attr('stroke-width', 0.8);
+      }
+    }
+
+    const wordSize = Math.max(isMobile ? 8 : 9, Math.min(isMobile ? 14 : 17, d.r * 0.32));
+    const metaSize = Math.max(7, Math.min(10, d.r * 0.20));
+    const showLabel = !isMobile || d.r > 16;
+
+    if (showLabel) {
+      g.append('text')
+        .attr('class', 'bubble-word')
+        .attr('font-size', wordSize)
+        .attr('y', -metaSize * 0.25)
+        .text(d.word.charAt(0).toUpperCase() + d.word.slice(1));
+
+      g.append('text')
+        .attr('class', 'bubble-meta')
+        .attr('font-size', metaSize)
+        .attr('y', metaSize * 1.05)
+        .text(`${d.badPct}-${100 - d.badPct}`);
+    }
+  });
+
+  bubble
+    .on('mouseenter', function(event, d) {
+      activeNode = null;
+      showTooltip(d, width, height);
+      d3.select(this).raise();
+    })
+    .on('mousemove', function(event, d) {
+      placeTooltip(d, width, height);
+    })
+    .on('mouseleave', hideTooltip)
+    .on('click', function(event, d) {
+      event.stopPropagation();
+      activeNode = d;
+      showTooltip(d, width, height);
+      d3.select(this).raise();
+    });
+
+  svg.on('click', () => {
+    activeNode = null;
+    hideTooltip();
+  });
+}
+
+render();
+window.addEventListener('resize', () => {
+  clearTimeout(window.__bubbleResize);
+  window.__bubbleResize = setTimeout(render, 120);
+});
+</script>
+</body>
+</html>
