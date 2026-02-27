@@ -40,7 +40,7 @@
   h2 {
     margin: 0;
     font-family: Inter, sans-serif;
-    font-weight: 600;
+    font-weight: 500;
     font-size: clamp(12px, 1.65vw, 20px);
     line-height: 1.2;
     color: #111827;
@@ -59,17 +59,17 @@
     grid-template-columns: 1fr 1fr;
     align-items: start;
     justify-content: center;
-    gap: 16px;
+    gap: 10px;
     font-size: 10px;
     color: var(--muted);
-    margin: 4px 0 8px;
+    margin: 2px 0 4px;
   }
 
   .legend-item {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    max-width: 280px;
+    max-width: 165px;
     line-height: 1.35;
   }
 
@@ -97,6 +97,7 @@
     overflow: hidden;
     background: #fafafa;
     border: 0;
+    margin-top: -2px;
   }
 
   svg {
@@ -119,42 +120,8 @@
     font-weight: 500;
     text-anchor: middle;
     dominant-baseline: middle;
-    fill: #6b7280;
+    fill: #9ca3af;
     pointer-events: none;
-  }
-
-  .axis-line {
-    stroke: #d6dbe5;
-    stroke-width: 1;
-  }
-
-  .tooltip {
-    position: absolute;
-    pointer-events: none;
-    background: rgba(17, 24, 39, 0.96);
-    color: #f9fafb;
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 12px;
-    line-height: 1.35;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
-    transform: translate(-50%, -110%);
-    opacity: 0;
-    transition: opacity 120ms ease;
-    max-width: 230px;
-    z-index: 4;
-  }
-
-  .tooltip strong {
-    color: #fff;
-    font-weight: 600;
-  }
-
-  .footer-note {
-    margin: 6px 2px 0;
-    color: #8a90a1;
-    font-size: 10px;
-    text-align: center;
   }
 
   @media (max-width: 640px) {
@@ -169,10 +136,6 @@
       margin-bottom: 6px;
     }
 
-    .tooltip {
-      font-size: 11px;
-      max-width: 200px;
-    }
   }
 </style>
 </head>
@@ -184,20 +147,17 @@
     <div class="legend">
       <div class="legend-item legend-bad">
         <span class="dot" style="background:var(--bad);border:1px solid var(--bad-stroke);"></span>
-        <span>Words favored by people who think social media is <strong>mostly bad</strong> for society</span>
+        <span>&larr; Words favored by people who think social media is <strong>mostly bad</strong> for society</span>
       </div>
       <div class="legend-item legend-good">
         <span class="dot" style="background:var(--good);border:1px solid var(--good-stroke);"></span>
-        <span>Words favored by people who think social media is <strong>mostly good</strong> for society</span>
+        <span>Words favored by people who think social media is <strong>mostly good</strong> for society &rarr;</span>
       </div>
     </div>
 
     <div class="viz-wrap" id="vizWrap">
       <svg id="bubblesvg" role="img" aria-label="Split-color bubble chart comparing words by group"></svg>
-      <div id="tooltip" class="tooltip"></div>
     </div>
-
-    <p class="footer-note">Split values show mention share by group for each word. Tap circles on mobile for details.</p>
   </article>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
@@ -238,8 +198,6 @@ const colors = {
 
 const svg = d3.select('#bubblesvg');
 const wrap = d3.select('#vizWrap');
-const tooltip = d3.select('#tooltip');
-let activeNode = null;
 
 const margin = { top: 20, right: 16, bottom: 20, left: 16 };
 
@@ -255,30 +213,6 @@ function eyeHeight(x, width, height) {
   const dx = (x - cx) / rx;
   if (Math.abs(dx) >= 1) return 0;
   return ry * Math.sqrt(1 - dx * dx);
-}
-
-function tooltipHtml(d) {
-  const goodPct = 100 - d.badPct;
-  const favored = d.badPct > 55 ? 'Mostly bad group' : d.badPct < 45 ? 'Mostly good group' : 'Near even split';
-  return `<strong>${d.word}</strong><br>${d.badPct}% bad-group share vs ${goodPct}% good-group share<br>${favored}`;
-}
-
-function placeTooltip(d, width, height) {
-  const x = d.renderX;
-  const y = d.renderY;
-  tooltip
-    .style('left', `${Math.max(20, Math.min(width - 20, x))}px`)
-    .style('top', `${Math.max(30, y - d.r - 10)}px`);
-}
-
-function showTooltip(d, width, height) {
-  tooltip.html(tooltipHtml(d)).style('opacity', 1);
-  placeTooltip(d, width, height);
-}
-
-function hideTooltip() {
-  if (activeNode) return;
-  tooltip.style('opacity', 0);
 }
 
 function render() {
@@ -334,13 +268,6 @@ function render() {
   svg.selectAll('*').remove();
 
   const defs = svg.append('defs');
-
-  svg.append('line')
-    .attr('class', 'axis-line')
-    .attr('x1', margin.left)
-    .attr('x2', width - margin.right)
-    .attr('y1', 24)
-    .attr('y2', 24);
 
   const bubble = svg.append('g')
     .selectAll('g.b')
@@ -421,30 +348,8 @@ function render() {
         .attr('class', 'bubble-meta')
         .attr('font-size', metaSize)
         .attr('y', metaSize * 1.05)
-        .text(`${d.badPct}-${100 - d.badPct}`);
+        .text(`${d.badPct}%-${100 - d.badPct}%`);
     }
-  });
-
-  bubble
-    .on('mouseenter', function(event, d) {
-      activeNode = null;
-      showTooltip(d, width, height);
-      d3.select(this).raise();
-    })
-    .on('mousemove', function(event, d) {
-      placeTooltip(d, width, height);
-    })
-    .on('mouseleave', hideTooltip)
-    .on('click', function(event, d) {
-      event.stopPropagation();
-      activeNode = d;
-      showTooltip(d, width, height);
-      d3.select(this).raise();
-    });
-
-  svg.on('click', () => {
-    activeNode = null;
-    hideTooltip();
   });
 }
 
