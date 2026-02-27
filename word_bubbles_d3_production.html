@@ -142,16 +142,16 @@
 <body>
   <article class="story-card">
     <h2>Words used to explain social media use, by group</h2>
-    <p class="subtitle">Bubble size = combined mention rate across both groups. Color split shows which group used the word more, normalized for sample size (Mostly Bad n=131, Mostly Good n=76).</p>
+    <p class="subtitle">Respondents who used social media earlier in the day and said its effect on society was either "mostly good" or "mostly bad" asked to explain why they used social media. Bubble size = combined mention rate across both groups. Color split shows which group used the word more, normalized for sample size (Mostly Bad n=131, Mostly Good n=76).</p>
 
     <div class="legend">
       <div class="legend-item legend-bad">
         <span class="dot" style="background:var(--bad);border:1px solid var(--bad-stroke);"></span>
-        <span>&larr; Words favored by people who think social media is <strong>mostly bad</strong> for society</span>
+        <span>&larr; Favored by people who think social media is <strong>mostly bad</strong></span>
       </div>
       <div class="legend-item legend-good">
         <span class="dot" style="background:var(--good);border:1px solid var(--good-stroke);"></span>
-        <span>Words favored by people who think social media is <strong>mostly good</strong> for society &rarr;</span>
+        <span>Favored by people who think social media is <strong>mostly good</strong> &rarr;</span>
       </div>
     </div>
 
@@ -199,7 +199,7 @@ const colors = {
 const svg = d3.select('#bubblesvg');
 const wrap = d3.select('#vizWrap');
 
-const margin = { top: 20, right: 16, bottom: 20, left: 16 };
+const margin = { top: 14, right: 16, bottom: 6, left: 16 };
 
 function targetX(badPct, width) {
   const innerW = width - margin.left - margin.right;
@@ -218,7 +218,7 @@ function eyeHeight(x, width, height) {
 function render() {
   const bounds = wrap.node().getBoundingClientRect();
   const width = Math.max(320, Math.floor(bounds.width));
-  const height = Math.max(300, Math.min(460, Math.floor(width * 0.50)));
+  const height = Math.max(250, Math.min(420, Math.floor(width * 0.42)));
 
   svg.attr('viewBox', `0 0 ${width} ${height}`);
 
