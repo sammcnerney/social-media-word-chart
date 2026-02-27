@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Social Media Word Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f7f6;
+    --card: #fdfdfd;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #d5d9e0;
+    --bad: #f2cccb;
+    --good: #c9d7e8;
+    --bad-stroke: #d4a8a7;
+    --good-stroke: #a8bdd4;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: Inter, sans-serif;
+    color: var(--ink);
+  }
+
+  .story-card {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 22px 18px 16px;
+    background: var(--card);
+    border: 1px solid #e7e8ec;
+    border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(17, 24, 39, 0.03);
+  }
+
+  .kicker {
+    margin: 0 0 6px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  h2 {
+    margin: 0;
+    font-family: "Source Serif 4", serif;
+    font-weight: 600;
+    font-size: clamp(23px, 3.3vw, 40px);
+    line-height: 1.05;
+    color: #111827;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    margin: 10px 0 14px;
+    color: var(--muted);
+    font-size: clamp(12px, 1.7vw, 14px);
+    line-height: 1.5;
+    max-width: 76ch;
+  }
+
+  .legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 4px 0 8px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+  }
+
+  .axis-note {
+    display: flex;
+    justify-content: space-between;
+    margin: 2px 6px 6px;
+    color: #7b8191;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .viz-wrap {
+    position: relative;
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #fbfcff 0%, #f5f7fb 100%);
+    border: 1px solid #e7e9ef;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .bubble-word {
+    font-family: Inter, sans-serif;
+    font-weight: 500;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: #1f2937;
+    pointer-events: none;
+  }
+
+  .bubble-meta {
+    font-family: Inter, sans-serif;
+    font-weight: 500;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: #6b7280;
+    pointer-events: none;
+  }
+
+  .axis-line {
+    stroke: #d6dbe5;
+    stroke-width: 1;
+  }
+
+  .axis-mid {
+    stroke: #d6dbe5;
+    stroke-width: 1;
+    stroke-dasharray: 3 6;
+  }
+
+  .anno {
+    font-size: 11px;
+    fill: #6b7280;
+    font-weight: 500;
+    font-family: Inter, sans-serif;
+  }
+
+  .anno-line {
+    stroke: #b6bfce;
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(17, 24, 39, 0.96);
+    color: #f9fafb;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.35;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    transform: translate(-50%, -110%);
+    opacity: 0;
+    transition: opacity 120ms ease;
+    max-width: 230px;
+    z-index: 4;
+  }
+
+  .tooltip strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .footer-note {
+    margin: 8px 2px 0;
+    color: #8a90a1;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    .story-card {
+      padding: 16px 12px 12px;
+      border-radius: 10px;
+    }
+
+    .axis-note {
+      font-size: 10px;
+      margin-bottom: 4px;
+    }
+
+    .legend {
+      gap: 8px;
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    .tooltip {
+      font-size: 11px;
+      max-width: 200px;
+    }
+  }
+</style>
+</head>
+<body>
+  <article class="story-card">
+    <p class="kicker">Language patterns</p>
+    <h2>Two groups, same platforms, different reasons</h2>
+    <p class="subtitle">Each circle is a common word in open-text responses. Bigger circles were used more often overall. Left means the word appeared relatively more among people who say social media is mostly bad; right means relatively more among people who say it is mostly good.</p>
+
+    <div class="legend">
+      <span class="chip"><span class="dot" style="background:var(--bad);border:1px solid var(--bad-stroke);"></span> Favored by "mostly bad" respondents</span>
+      <span class="chip"><span class="dot" style="background:var(--good);border:1px solid var(--good-stroke);"></span> Favored by "mostly good" respondents</span>
+    </div>
+
+    <div class="axis-note">
+      <span>&larr; More "mostly bad" language</span>
+      <span>More "mostly good" language &rarr;</span>
+    </div>
+
+    <div class="viz-wrap" id="vizWrap">
+      <svg id="bubblesvg" role="img" aria-label="Split-color bubble chart comparing words by group"></svg>
+      <div id="tooltip" class="tooltip"></div>
+    </div>
+
+    <p class="footer-note">Split values show mention share by group for each word. Tap circles on mobile for details.</p>
+  </article>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+const data = [
+  { word: 'friends', totalRate: 32.6, badPct: 52 },
+  { word: 'news', totalRate: 26.1, badPct: 29 },
+  { word: 'family', totalRate: 24.6, badPct: 47 },
+  { word: 'entertainment', totalRate: 19.5, badPct: 39 },
+  { word: 'world', totalRate: 14.1, badPct: 16 },
+  { word: 'habit', totalRate: 12.2, badPct: 100 },
+  { word: 'videos', totalRate: 9.6, badPct: 32 },
+  { word: 'information', totalRate: 9.6, badPct: 32 },
+  { word: 'facebook', totalRate: 9.3, badPct: 58 },
+  { word: 'informed', totalRate: 8.9, badPct: 26 },
+  { word: 'connected', totalRate: 8.5, badPct: 54 },
+  { word: 'bored', totalRate: 8.0, badPct: 67 },
+  { word: 'society', totalRate: 6.9, badPct: 100 },
+  { word: 'helps', totalRate: 6.6, badPct: 0 },
+  { word: 'learn', totalRate: 6.0, badPct: 13 },
+  { word: 'boredom', totalRate: 4.9, badPct: 47 },
+  { word: 'scroll', totalRate: 4.4, badPct: 70 },
+  { word: 'reddit', totalRate: 4.4, badPct: 70 },
+  { word: 'enjoy', totalRate: 4.4, badPct: 70 },
+  { word: 'addicted', totalRate: 3.8, badPct: 100 },
+  { word: 'addictive', totalRate: 3.1, badPct: 100 },
+  { word: 'mental', totalRate: 3.1, badPct: 100 },
+  { word: 'misinformation', totalRate: 2.3, badPct: 100 },
+  { word: 'waste', totalRate: 2.3, badPct: 100 },
+  { word: 'youtube', totalRate: 2.3, badPct: 100 }
+];
+
+const colors = {
+  bad: '#F2CCCB',
+  good: '#C9D7E8',
+  stroke: '#c2c8d5'
+};
+
+const svg = d3.select('#bubblesvg');
+const wrap = d3.select('#vizWrap');
+const tooltip = d3.select('#tooltip');
+let activeNode = null;
+
+const margin = { top: 20, right: 16, bottom: 20, left: 16 };
+
+function targetX(badPct, width) {
+  const innerW = width - margin.left - margin.right;
+  return margin.left + ((100 - badPct) / 100) * innerW;
+}
+
+function eyeHeight(x, width, height) {
+  const cx = width / 2;
+  const rx = (width - margin.left - margin.right) * 0.49;
+  const ry = (height - margin.top - margin.bottom) * 0.47;
+  const dx = (x - cx) / rx;
+  if (Math.abs(dx) >= 1) return 0;
+  return ry * Math.sqrt(1 - dx * dx);
+}
+
+function tooltipHtml(d) {
+  const goodPct = 100 - d.badPct;
+  const favored = d.badPct > 55 ? 'Mostly bad group' : d.badPct < 45 ? 'Mostly good group' : 'Near even split';
+  return `<strong>${d.word}</strong><br>${d.badPct}% bad-group share vs ${goodPct}% good-group share<br>${favored}`;
+}
+
+function placeTooltip(d, width, height) {
+  const x = d.renderX;
+  const y = d.renderY;
+  tooltip
+    .style('left', `${Math.max(20, Math.min(width - 20, x))}px`)
+    .style('top', `${Math.max(30, y - d.r - 10)}px`);
+}
+
+function showTooltip(d, width, height) {
+  tooltip.html(tooltipHtml(d)).style('opacity', 1);
+  placeTooltip(d, width, height);
+}
+
+function hideTooltip() {
+  if (activeNode) return;
+  tooltip.style('opacity', 0);
+}
+
+function render() {
+  const bounds = wrap.node().getBoundingClientRect();
+  const width = Math.max(320, Math.floor(bounds.width));
+  const height = Math.max(360, Math.min(640, Math.floor(width * 0.62)));
+
+  svg.attr('viewBox', `0 0 ${width} ${height}`);
+
+  const isMobile = width < 520;
+  const minR = isMobile ? 10 : 12;
+  const maxR = isMobile ? 46 : 62;
+  const maxRate = d3.max(data, d => d.totalRate);
+  const rScale = d3.scaleSqrt().domain([0, maxRate]).range([minR, maxR]);
+  const cy = height / 2;
+
+  const nodes = data.map((d, i) => {
+    const r = rScale(d.totalRate);
+    const tx = targetX(d.badPct, width);
+    const eh = eyeHeight(tx, width, height);
+    const sign = i % 2 === 0 ? -1 : 1;
+    const spread = Math.max(0, Math.min(eh * 0.72, eh - r - 4));
+    const ty = cy + sign * spread * (0.36 + (i % 3) * 0.28);
+
+    return {
+      ...d,
+      r,
+      x: tx + (Math.random() - 0.5) * 7,
+      y: ty,
+      tx,
+      ty
+    };
+  });
+
+  const sim = d3.forceSimulation(nodes)
+    .force('x', d3.forceX(d => targetX(d.badPct, width)).strength(0.17))
+    .force('y', d3.forceY(cy).strength(0.07))
+    .force('collide', d3.forceCollide(d => d.r + 3).iterations(2))
+    .stop();
+
+  for (let i = 0; i < 280; i++) {
+    sim.tick();
+    for (const d of nodes) {
+      const eh = eyeHeight(d.x, width, height);
+      const lim = Math.max(eh - d.r - 2, 0);
+      d.y = Math.max(cy - lim, Math.min(cy + lim, d.y));
+      d.x = Math.max(margin.left + d.r, Math.min(width - margin.right - d.r, d.x));
+      d.renderX = d.x;
+      d.renderY = d.y;
+    }
+  }
+
+  svg.selectAll('*').remove();
+
+  const defs = svg.append('defs');
+
+  svg.append('line')
+    .attr('class', 'axis-line')
+    .attr('x1', margin.left)
+    .attr('x2', width - margin.right)
+    .attr('y1', 24)
+    .attr('y2', 24);
+
+  svg.append('line')
+    .attr('class', 'axis-mid')
+    .attr('x1', width / 2)
+    .attr('x2', width / 2)
+    .attr('y1', 24)
+    .attr('y2', height - 14);
+
+  const bubble = svg.append('g')
+    .selectAll('g.b')
+    .data(nodes, d => d.word)
+    .enter()
+    .append('g')
+    .attr('class', 'b')
+    .attr('transform', d => `translate(${d.renderX},${d.renderY})`)
+    .style('cursor', 'pointer')
+    .style('opacity', 0);
+
+  bubble.transition()
+    .duration(640)
+    .delay((d, i) => i * 18)
+    .style('opacity', 1);
+
+  bubble.each(function(d, i) {
+    const g = d3.select(this);
+    const badFrac = d.badPct / 100;
+
+    if (d.badPct === 100 || d.badPct === 0) {
+      g.append('circle')
+        .attr('r', d.r)
+        .attr('fill', d.badPct === 100 ? colors.bad : colors.good)
+        .attr('stroke', d.badPct === 100 ? '#d4a8a7' : '#a8bdd4')
+        .attr('stroke-width', 0.8);
+    } else {
+      g.append('circle')
+        .attr('r', d.r)
+        .attr('fill', colors.good);
+
+      const clipId = `clip-${i}-${Math.round(width)}`;
+      defs.append('clipPath')
+        .attr('id', clipId)
+        .append('rect')
+        .attr('x', -d.r)
+        .attr('y', -d.r)
+        .attr('width', d.r * 2 * badFrac)
+        .attr('height', d.r * 2);
+
+      g.append('circle')
+        .attr('r', d.r)
+        .attr('fill', colors.bad)
+        .attr('clip-path', `url(#${clipId})`);
+
+      g.append('circle')
+        .attr('r', d.r)
+        .attr('fill', 'none')
+        .attr('stroke', colors.stroke)
+        .attr('stroke-width', 0.8);
+
+      const splitX = -d.r + d.r * 2 * badFrac;
+      const dx = splitX;
+      if (Math.abs(dx) <= d.r) {
+        const halfH = Math.sqrt(d.r * d.r - dx * dx);
+        g.append('line')
+          .attr('x1', splitX)
+          .attr('x2', splitX)
+          .attr('y1', -halfH)
+          .attr('y2', halfH)
+          .attr('stroke', '#b9bfcb')
+          .attr('stroke-width', 0.8);
+      }
+    }
+
+    const wordSize = Math.max(isMobile ? 8 : 9, Math.min(isMobile ? 14 : 17, d.r * 0.32));
+    const metaSize = Math.max(7, Math.min(10, d.r * 0.20));
+    const showLabel = !isMobile || d.r > 16;
+
+    if (showLabel) {
+      g.append('text')
+        .attr('class', 'bubble-word')
+        .attr('font-size', wordSize)
+        .attr('y', -metaSize * 0.25)
+        .text(d.word);
+
+      g.append('text')
+        .attr('class', 'bubble-meta')
+        .attr('font-size', metaSize)
+        .attr('y', metaSize * 1.05)
+        .text(`${d.badPct}-${100 - d.badPct}`);
+    }
+  });
+
+  const notable = [...nodes]
+    .sort((a, b) => b.totalRate - a.totalRate)
+    .slice(0, 3);
+
+  const anno = svg.append('g');
+  notable.forEach((d, i) => {
+    if (isMobile) return;
+    const dx = d.renderX < width / 2 ? -68 : 68;
+    const dy = i === 0 ? -64 : i === 1 ? 56 : -44;
+    anno.append('line')
+      .attr('class', 'anno-line')
+      .attr('x1', d.renderX)
+      .attr('y1', d.renderY)
+      .attr('x2', d.renderX + dx)
+      .attr('y2', d.renderY + dy);
+
+    anno.append('text')
+      .attr('class', 'anno')
+      .attr('x', d.renderX + dx + (dx < 0 ? -3 : 3))
+      .attr('y', d.renderY + dy)
+      .attr('text-anchor', dx < 0 ? 'end' : 'start')
+      .text(`${d.word}: ${d.badPct}-${100 - d.badPct}`);
+  });
+
+  bubble
+    .on('mouseenter', function(event, d) {
+      activeNode = null;
+      showTooltip(d, width, height);
+      d3.select(this).raise();
+    })
+    .on('mousemove', function(event, d) {
+      placeTooltip(d, width, height);
+    })
+    .on('mouseleave', hideTooltip)
+    .on('click', function(event, d) {
+      event.stopPropagation();
+      activeNode = d;
+      showTooltip(d, width, height);
+      d3.select(this).raise();
+    });
+
+  svg.on('click', () => {
+    activeNode = null;
+    hideTooltip();
+  });
+}
+
+render();
+window.addEventListener('resize', () => {
+  clearTimeout(window.__bubbleResize);
+  window.__bubbleResize = setTimeout(render, 120);
+});
+</script>
+</body>
+</html>
